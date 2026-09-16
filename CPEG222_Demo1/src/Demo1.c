@@ -4,6 +4,7 @@
  * NUCLEOF446ZE CMSIS STM32F4xx Demo1 Blink PB0
  ********************************************/
 
+#include <stdint.h> // Required by CMSIS; configure IntelliSense to find system headers
 #include "stm32f4xx.h" // Include the STM32F4xx CMSIS header file
 #define LED_PIN 0 //Assuming LED is connected to GPIOB pin 0
 #define LED_PORT GPIOB
