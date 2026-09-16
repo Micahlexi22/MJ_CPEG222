@@ -6,14 +6,15 @@
 
 //** Imports **//
 #include "stm32f4xx.h"
-#include <stdbool.h>
-#define Button_pin 13
+#include <stdbool.h> // Included for boolean
+
+#define Button_pin 13 //USR Button
 #define Button_port GPIOC
-#define Green_LED_pin 0
+#define Green_LED_pin 0 //Green LED
 #define Green_LED_port GPIOB
-#define Blue_LED_pin 7
+#define Blue_LED_pin 7 //Blue LED
 #define Blue_LED_port GPIOB
-#define Red_LED_pin 14
+#define Red_LED_pin 14 //Red LED
 #define Red_LED_port GPIOB
 
 //**Global Variables **//
