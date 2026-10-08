@@ -10,10 +10,10 @@
 #include <math.h>
 #include <stdlib.h>
 
-
 // ** Function Declarations ** //
 void rcc_enable(void); //Function to enable RCC for GPIO, TIM5, TIM6
 void SysTick_Handler(void); //Interrupt handler for SysTick
+void delay(volatile uint32_t count); //Delay functions
 
 void TIM5_IRQHandler(void); //Interrupt handler for TIM5
 void EXTI9_5_IRQHandler(void); //Interrupt handler for EXTI9_5

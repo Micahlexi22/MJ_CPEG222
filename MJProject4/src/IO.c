@@ -35,13 +35,13 @@ const unsigned char SSDdigits[] = {
 };
 
 const uint16_t birthday_tune[] = {
-    262, 262, 294, 262, 349, 330, //Happy Birthday To You
-    262, 262, 294, 262, 392, 349, //Happy Birthday To You
-    262, 262, 523, 440, 349, 330, 294, //Happy Birthday Dear [Name]
-    466, 466, 440, 349, 392, 349 //Happy Birthday To You
+    261.63, 261.63, 293.66, 261.63, 349.23, 329.63, //Happy Birthday To You
+    261.63, 261.63, 293.66, 261.63, 392, 349.23, //Happy Birthday To You
+    261.63, 261.63, 523.25, 440, 349.23, 329.63, 293.66, //Happy Birthday Dear [Name]
+    466.16, 466.16, 440, 349.23, 392, 349.23 //Happy Birthday To You
 };
 
-//Durations in ms, (150ms = eighth note,300ms = quarter note, 600ms = half note, 1200ms = whole note)
+//Durations in ms, (150ms = eighth note, 300ms = quarter note, 600ms = half note, 1200ms = whole note)
 const uint16_t note_lengths[] = {
     300, 300, 600, 600, 600, 1200, //Happy Birthday To You
     300, 300, 600, 600, 600, 1200, //Happy Birthday To You
@@ -72,6 +72,11 @@ uint16_t DIGIT_PINS[] = {1 << Digit1_PIN,1 << Digit2_PIN, 1<< Digit3_PIN, 1<< Di
 
 void SysTick_Handler(void){
     ticks++;
+}
+
+void delay(volatile uint32_t count){ // simple delay function
+    while(count --){ //Function will block for a while, creating a delay
+    }
 }
 
 void rcc_enable(void){ //Function to enable RCC for GPIO, TIM5, TIM6
@@ -365,7 +370,7 @@ void State_Machine(void){
             last_freq = current_freq;
         }
 
-    }else if(state == 2){ //Happy Birthday
+    }else if(state == 2){ //Happy Birthday Extra Credit
         uint32_t elapsed_time = ticks - note_start_time;
         uint16_t current_note_len = birthday_tune[note_index];
         /*uint16_t gap = 0; //40 ms of silence to separate notes
@@ -378,6 +383,7 @@ void State_Machine(void){
 
         if(elapsed_time >= (current_note_len)){ // If note duration has elapsed
             note_index ++; // Move to next note
+            delay(10 * 0.85); //pause between each note for a few ms
 
             if(note_index >= total_notes){ // If last note has finished
                 note_index = 0;

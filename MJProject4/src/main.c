@@ -13,7 +13,6 @@
 
 // ** Imports & Helper Files **/
 #include "IO.h"
-#include "pinports.h"
 
 // ** Main Functions ** //
 int main(void){

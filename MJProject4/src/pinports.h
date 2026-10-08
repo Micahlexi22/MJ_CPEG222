@@ -39,7 +39,7 @@
 #define SEG_G GPIOB
 
 // ** Other **//
-#define DAC1 4
+//#define DAC1 4
 #define DAC1_PORT GPIOA
 #define V_POT_PIN 2
 #define V_POT GPIOC
