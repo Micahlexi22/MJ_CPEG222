@@ -43,10 +43,10 @@ const uint16_t birthday_tune[] = {
 
 //Durations in ms, (150ms = eighth note, 300ms = quarter note, 600ms = half note, 1200ms = whole note)
 const uint16_t note_lengths[] = {
-    300, 300, 600, 600, 600, 1200, //Happy Birthday To You
-    300, 300, 600, 600, 600, 1200, //Happy Birthday To You
-    300, 300, 600, 600, 600, 600, 1200, //Happy Birthday Dear [Name]
-    300, 300, 600, 600, 600, 1200 //Happy Birthday To You
+    300, 150, 600, 600, 600, 900, //Happy Birthday To You
+    300, 150, 600, 600, 600, 900, //Happy Birthday To You
+    300, 150, 600, 600, 600, 600, 900, //Happy Birthday Dear [Name]
+    300, 150, 600, 600, 600, 900 //Happy Birthday To You
 };
 
 const uint16_t sine_lut[100] = { //Array of Sine Wave values
@@ -143,6 +143,7 @@ void rcc_enable(void){ //Function to enable RCC for GPIO, TIM5, TIM6
     NVIC_EnableIRQ(TIM5_IRQn);
     TIM5->CR1 |= TIM_CR1_CEN; //Enable TIM5
 
+
     // -- Configure TIM6 -- //
     TIM6->PSC = 0; //Prescaler
     TIM6->ARR = (SystemCoreClock / (samples * frequency)) - 1; //Calculate ARR for TIM6 based on desired frequency
@@ -150,6 +151,7 @@ void rcc_enable(void){ //Function to enable RCC for GPIO, TIM5, TIM6
     TIM6->CNT = 0; //Reset counter
     TIM6->CR2 &= ~TIM_CR2_MMS; //Select Update Event as Trigger Output (MMS = 000)
     TIM6->CR2 |= (0x2 << TIM_CR2_MMS_Pos);
+    TIM6->CR1 |= TIM_CR1_ARPE; //Enable Auto-reload preload
     TIM6->CR1 |= TIM_CR1_CEN; //Enable TIM6
 
     // -- Enable TIM6 -- //
@@ -325,7 +327,7 @@ void update_frequency(uint16_t new_frequency){
     }
     uint32_t goal_ticks = (SystemCoreClock / (new_frequency * samples) - 1); //Calculate ticks
     TIM6-> ARR = goal_ticks;
-    TIM6->EGR |= TIM_EGR_UG; // Generate update event
+   // TIM6->EGR |= TIM_EGR_UG; // Generate update event
 }
 
 void State_Machine(void){
@@ -348,9 +350,11 @@ void State_Machine(void){
             AUDIO_SD->BSRR = (1 << (Audio_SD_PIN + 16)); //Set Pin Low
             DAC->CR &= ~DAC_CR_EN1;
         }else{
-            AUDIO_SD->BSRR = (1 << (Audio_SD_PIN)); //Set Pin High
-            DAC->CR |= DAC_CR_EN1;
-            DMA1_Stream5->CR |= DMA_SxCR_EN;
+            AUDIO_SD->BSRR = (1 << (Audio_SD_PIN)); //Set Amp on
+            DAC->CR |= (DAC_CR_EN1 | DAC_CR_TEN1); // Enable DAC
+
+            TIM6-> CR1 |= TIM_CR1_CEN;
+            DMA1_Stream5->CR |= DMA_SxCR_EN; // Enable DMA stream
         }
         last_state = state;
     }
@@ -364,6 +368,11 @@ void State_Machine(void){
         uint16_t current_freq = adc_to_freq(read_adc_pot());
         num = current_freq;
 
+        if(!(DAC->CR & DAC_CR_TEN1)){
+            DAC->CR |= DAC_CR_TEN1; // turn on trigger enable
+            TIM6->CR1 |= TIM_CR1_CEN;
+        }
+
         static uint16_t last_freq = 0;
         if(abs((int)current_freq - (int)last_freq) > 15){ // If frequency has changed significantly
             update_frequency(current_freq);
@@ -372,20 +381,27 @@ void State_Machine(void){
 
     }else if(state == 2){ //Happy Birthday Extra Credit
         uint32_t elapsed_time = ticks - note_start_time;
-        uint16_t current_note_len = birthday_tune[note_index];
-        /*uint16_t gap = 0; //40 ms of silence to separate notes
+        uint16_t current_note_len = note_lengths[note_index];
+        uint16_t gap =  current_note_len >> 3; //silence to separate notes
 
-        if(elapsed_time >= (current_note_len  - gap)){
-            AUDIO_SD->BSRR = (1 << (Audio_SD_PIN+16));
-        }else{
-            AUDIO_SD->BSRR = (1 << Audio_SD_PIN);;
-        }*/
+        if(gap < 20){
+            gap = 20;
+        }
+
+        if(elapsed_time >= (current_note_len  - gap)){ //Disable amplifier for "rests"
+            if(TIM6->CR1 & TIM_CR1_CEN){ //only change register if timer is still active
+                TIM6->CR1 &= ~TIM_CR1_CEN; //stop triggers
+                DAC->CR &= ~DAC_CR_TEN1; // stop hardware triggers
+                DAC->DHR12R1 = 2048; 
+            } 
+        }
 
         if(elapsed_time >= (current_note_len)){ // If note duration has elapsed
             note_index ++; // Move to next note
-            delay(10 * 0.85); //pause between each note for a few ms
-
+        
             if(note_index >= total_notes){ // If last note has finished
+                //delay(500);
+
                 note_index = 0;
                 if(s1_on){
                     state = 1;
@@ -393,16 +409,23 @@ void State_Machine(void){
                     num = current_freq;
                     update_frequency(num);
 
+                    //Restore Hardware Triggers
+                    DAC->CR |= DAC_CR_TEN1;
+                    TIM6->CR1 |= TIM_CR1_CEN;
+
                 }else{
                     state = 0;
-                    DMA1_Stream5->CR &= ~DMA_SxCR_EN; // Turn off ADC
+                    DMA1_Stream5->CR &= ~DMA_SxCR_EN; // Turn off DMA stream
+                    DAC->CR &= ~DAC_CR_EN1; //kill DAC output
                 }
             }else{
                 note_start_time = ticks; // Reset note start time
                 num = birthday_tune[note_index];
                 update_frequency(num); // Update TIM6
-                AUDIO_SD->BSRR = (1 << Audio_SD_PIN);
 
+                //Re-enable audio pin hardware trigger
+                DAC->CR |= DAC_CR_TEN1;
+                TIM6->CR1 |= TIM_CR1_CEN;
             }
         }
     }
