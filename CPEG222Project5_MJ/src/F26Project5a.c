@@ -11,20 +11,37 @@
 #include <stdio.h> // Include stdio.h for snprintf function
 #include <stdbool.h>
 
-#define SW1 8
+
+//Switch1
+#define SW1 8 
 #define SW1_Port GPIOC
+
+//Buttons
+#define LEFT_PIN 9
+#define LEFT GPIOF
+#define CENTER_PIN 8
+#define CENTER GPIOF
+#define RIGHT_PIN 6
+#define RIGHT GPIOE
+#define UP_PIN 7
+#define UP GPIOF
+#define DOWN_PIN 5
+#define DOWN GPIOE
 
 void delay_ms(uint32_t ms); // Function prototype for delay function
 char buffer[90];
 uint32_t initialClock; // Initial system clock frequency (16 MHz)
 uint32_t finalClock;   // Final system clock frequency (180 MHz)
 
-void IOinit(void){
-    RCC->AHB1ENR |= RCC_AHB1ENR_GPIOCEN;// Enable GPIOC clock
+void IOinit(void){ //Initializing Extra Credit Inputs
+    RCC->AHB1ENR |= (RCC_AHB1ENR_GPIOCEN | RCC_AHB1ENR_GPIOEEN | RCC_AHB1ENR_GPIOFEN);// Enable GPIOC, GPIOE, and GPIOF clocks
     // -- Configure Switch as Input-- //
     SW1_Port->MODER &= ~(0x3 <<(SW1 * 2)); //Set switch to input mode
     SW1_Port->PUPDR &= ~(0x3 << (SW1 * 2));//Clear mode bits
     SW1_Port->PUPDR |= (0x2 << (SW1 * 2)); //Change to pull down resistor
+
+    // -- Configure Buttons as Inputs -- //
+    
 }
 
 
@@ -68,8 +85,7 @@ int main(void){
             inverted = false;
         }
     }
-    // Program should never reach here due to infinite loop
-    return 0;
+    return 0; // Program should never reach here due to infinite loop
 }
 
 void delay_ms(uint32_t ms){
