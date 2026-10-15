@@ -19,8 +19,6 @@
 //Buttons
 #define LEFT_PIN 9
 #define LEFT GPIOF
-#define CENTER_PIN 8
-#define CENTER GPIOF
 #define RIGHT_PIN 6
 #define RIGHT GPIOE
 #define UP_PIN 7
@@ -44,10 +42,6 @@ void IOinit(void){ //Initializing Extra Credit Inputs
     
 }
 
-
-
-
-
 int main(void){
     SystemCoreClockUpdate(); // CMSIS function to update SystemCoreClock variable
     initialClock = SystemCoreClock; // Store the initial clock frequency (16 MHz)
@@ -56,10 +50,10 @@ int main(void){
     finalClock = SystemCoreClock; // Store the final clock frequency (180 MHz)
 
     IOinit();
-
     OLED_Init();
     SH1106_RenderFullScreenLogo();
     delay_ms(4000); // Delay for 4 seconds to display the logo
+
     OLED_Clear();
     OLED_Print(0, 0, "CPEG222-F26 OLED Test");
     snprintf(buffer, sizeof(buffer), "Initial Clock: %lu MHz  ", initialClock / 1000000U);               
@@ -70,12 +64,17 @@ int main(void){
     OLED_Clear();
     OLED_Print(0, 0, "CPEG222-F26 OLED Test");
     OLED_Print(1, 0, "October 16th, 2026");
-    OLED_Print(3, 0, "Micah Johnson");
+    uint8_t row = 3;
+    uint8_t col = 0;
+    OLED_Print(row, col, "Micah Johnson");
 
-    uint8_t s1_on = ((SW1_Port->IDR & (1 << SW1)) != 0);
     uint8_t inverted = false;
 
-    while(1){
+    while(1){ // Main loop
+
+        //Extra Credit 1
+
+        uint8_t s1_on = ((SW1_Port->IDR & (1 << SW1)) != 0);
         // Main loop
         if (s1_on && (inverted == false)){
             OLED_WriteCmd(0xA7); //Black 0n White
@@ -83,6 +82,34 @@ int main(void){
         }else if(!s1_on && (inverted == true)){
             OLED_WriteCmd(0xA6); //Normal Display
             inverted = false;
+        }
+
+        //Extra Credit 2
+        uint8_t btn_up = ((UP->IDR & (1<<UP_PIN))!= 0 );
+        uint8_t btn_down = ((DOWN->IDR & (1<<DOWN_PIN))!= 0 );
+        uint8_t btn_left = ((LEFT->IDR & (1<<LEFT_PIN))!= 0 );
+        uint8_t btn_right = ((RIGHT->IDR & (1<<RIGHT_PIN))!= 0 );
+        //uint8_t btn_center = ((CENTER->IDR & (1<<CENTER_PIN))!= 0 );
+
+        if(btn_up || btn_down || btn_left || btn_right){
+            OLED_Print(row,col,"     ");
+
+            if(btn_up && row > 2){
+                row--;
+            }
+            if(btn_down && row < 7){
+                row++;
+            }
+            if(btn_left && col > 0){
+                col--;
+            }
+            if(btn_right && col < 10){
+                col++;
+            }
+
+            OLED_Print(row,col,"Micah Johnson");
+
+            delay_ms(200); // debounce delay
         }
     }
     return 0; // Program should never reach here due to infinite loop
