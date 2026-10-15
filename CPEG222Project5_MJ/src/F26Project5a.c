@@ -1,6 +1,7 @@
 // ****************************************************************
-// * Authors: T. LUM and R. MARTIN
-// * CPEG222 Demo Program5, 9/28/2026
+// * Authors: Micah Johnson
+// * CPEG222 Project 5
+// * 10/15/2026
 // * NucleoF446ZE CMSIS STM32F4xx example Proj5
 // * Sends text to the OLED display using SPI
 // ****************************************************************
@@ -10,7 +11,6 @@
 #include <stdint.h> // Include stdint.h for uint32_t type
 #include <stdio.h> // Include stdio.h for snprintf function
 #include <stdbool.h>
-
 
 //Switch1
 #define SW1 8 
@@ -30,6 +30,9 @@ void delay_ms(uint32_t ms); // Function prototype for delay function
 char buffer[90];
 uint32_t initialClock; // Initial system clock frequency (16 MHz)
 uint32_t finalClock;   // Final system clock frequency (180 MHz)
+
+static int last_row = 3;
+static int last_col = 0;
 
 void IOinit(void){ //Initializing Extra Credit Inputs
     RCC->AHB1ENR |= (RCC_AHB1ENR_GPIOCEN | RCC_AHB1ENR_GPIOEEN | RCC_AHB1ENR_GPIOFEN);// Enable GPIOC, GPIOE, and GPIOF clocks
@@ -64,18 +67,16 @@ int main(void){
     OLED_Clear();
     OLED_Print(0, 0, "CPEG222-F26 OLED Test");
     OLED_Print(1, 0, "October 16th, 2026");
-    uint8_t row = 3;
-    uint8_t col = 0;
-    OLED_Print(row, col, "Micah Johnson");
+    OLED_Print(last_row, last_col, "Micah Johnson");
+
 
     uint8_t inverted = false;
 
     while(1){ // Main loop
 
         //Extra Credit 1
-
         uint8_t s1_on = ((SW1_Port->IDR & (1 << SW1)) != 0);
-        // Main loop
+    
         if (s1_on && (inverted == false)){
             OLED_WriteCmd(0xA7); //Black 0n White
             inverted = true;
@@ -84,32 +85,58 @@ int main(void){
             inverted = false;
         }
 
+        uint8_t row = last_row;
+        uint8_t col = last_col;
+
         //Extra Credit 2
         uint8_t btn_up = ((UP->IDR & (1<<UP_PIN))!= 0 );
         uint8_t btn_down = ((DOWN->IDR & (1<<DOWN_PIN))!= 0 );
         uint8_t btn_left = ((LEFT->IDR & (1<<LEFT_PIN))!= 0 );
         uint8_t btn_right = ((RIGHT->IDR & (1<<RIGHT_PIN))!= 0 );
-        //uint8_t btn_center = ((CENTER->IDR & (1<<CENTER_PIN))!= 0 );
 
         if(btn_up || btn_down || btn_left || btn_right){
-            OLED_Print(row,col,"     ");
+            int new_row = row;
+            int new_col = col;
 
-            if(btn_up && row > 2){
-                row--;
+            if(btn_up && row < 8){ //moves up
+                new_row++;
             }
-            if(btn_down && row < 7){
-                row++;
+            if(btn_down && row > 2){ // Bc top row is row 0 , moves down
+                new_row--;
             }
-            if(btn_left && col > 0){
-                col--;
+            if(btn_left){
+                if(col + 4 < 46){
+                    new_col+= 4;
+                }else{
+                    new_col = 45;
+                }
             }
-            if(btn_right && col < 10){
-                col++;
+            if(btn_right){
+                if(col >= 4){
+                    new_col -= 4;
+                }else{
+                    new_col = 0;
+                }
             }
 
-            OLED_Print(row,col,"Micah Johnson");
+            last_row = row;
+            last_col = col;
 
-            delay_ms(200); // debounce delay
+            if(new_row != last_row || new_col != last_col){
+                OLED_Print(last_row,last_col,"                   ");
+
+                row = new_row;
+                col = new_col;
+
+                //Redraw 
+                OLED_Print(row,col,"Micah Johnson");
+
+                last_row = row;
+                last_col = col;
+
+            }
+
+            delay_ms(250); // debounce delay
         }
     }
     return 0; // Program should never reach here due to infinite loop
